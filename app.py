@@ -18,7 +18,6 @@ if "messages" not in st.session_state:
 # =====================================================
 # 2. FETCH API KEY (SECRETS OR SIDEBAR)
 # =====================================================
-# Pehle check karo ke Streamlit Secrets mein key hai ya nahi
 try:
     SECRET_KEY = st.secrets["GROQ_API_KEY"]
 except:
@@ -47,7 +46,7 @@ else:
     card_border = "rgba(0, 0, 0, 0.08)"
     chat_user_bg = "#E0E7FF" 
     chat_ai_bg = "#FFFFFF" 
-    input_bg = "rgba(255, 255, 255, 0.9)"
+    input_bg = "#FFFFFF" # Light mode input background
     glow = "rgba(139, 92, 246, 0.15)"
     blob1 = "rgba(139, 92, 246, 0.08)"
     blob2 = "rgba(6, 182, 212, 0.08)"
@@ -79,10 +78,46 @@ div[data-testid="stToggle"] {{ background: {card_bg}; padding: 10px 20px; border
 [data-testid="stChatMessage"]:has(div[aria-label="Chat message from user"]) {{ background: {chat_user_bg} !important; }}
 [data-testid="stChatMessage"]:has(div[aria-label="Chat message from assistant"]) {{ background: {chat_ai_bg} !important; }}
 
-/* Chat Input */
-[data-testid="stChatInput"] {{ background: {input_bg} !important; border: 1px solid {card_border} !important; border-radius: 50px !important; padding: 10px 20px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important; }}
-[data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {{ color: {text_color} !important; }}
-[data-testid="stChatInput"]:focus-within {{ border-color: #8B5CF6 !important; box-shadow: 0 0 20px {glow} !important; }}
+/* =========================================
+   CHAT INPUT FIX (THE MAGIC HAPPENS HERE)
+   ========================================= */
+/* Remove default white background of the outer wrapper */
+[data-testid="stChatInput"] {{ 
+    background: transparent !important; 
+    border: none !important;
+}}
+
+/* Style the actual input container */
+[data-testid="stChatInput"] > div {{ 
+    background: {input_bg} !important; 
+    border: 1px solid {card_border} !important; 
+    border-radius: 50px !important; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s ease;
+}}
+
+/* Style the text and placeholder */
+[data-testid="stChatInput"] textarea {{ 
+    color: {text_color} !important; 
+    caret-color: {text_color} !important;
+}}
+[data-testid="stChatInput"] textarea::placeholder {{ 
+    color: {muted_color} !important; 
+    opacity: 1 !important;
+}}
+
+/* Style the send button */
+[data-testid="stChatInput"] button {{ 
+    color: {text_color} !important; 
+}}
+[data-testid="stChatInput"] button:hover {{ 
+    background-color: {card_border} !important; 
+}}
+
+[data-testid="stChatInput"]:focus-within > div {{ 
+    border-color: #8B5CF6 !important; 
+    box-shadow: 0 0 20px {glow} !important; 
+}}
 
 /* Hero */
 .hero {{ text-align: center; margin-bottom: 40px; animation: fadeIn 1s ease-out; }}
