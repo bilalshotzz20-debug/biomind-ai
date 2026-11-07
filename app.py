@@ -21,7 +21,6 @@ if "messages" not in st.session_state:
 # =====================================================
 # 2. DYNAMIC CSS (LIGHT & DARK MODES)
 # =====================================================
-# Colors based on screenshots (Vibrant Purple/Cyan for dark, Soft Pastel/White for light)
 if st.session_state.theme == "dark":
     bg_color = "#050508"
     text_color = "#F8FAFC"
@@ -32,35 +31,50 @@ if st.session_state.theme == "dark":
     chat_ai_bg = "rgba(0, 240, 255, 0.05)"
     input_bg = "rgba(15, 15, 20, 0.9)"
     glow = "rgba(0, 240, 255, 0.2)"
+    blob1 = "rgba(112, 0, 255, 0.15)"
+    blob2 = "rgba(0, 240, 255, 0.1)"
 else:
     bg_color = "#F8FAFC"
-    text_color = "#1E293B"
+    text_color = "#0F172A" # Dark text for light mode
     muted_color = "#64748B"
-    card_bg = "rgba(255, 255, 255, 0.8)"
-    card_border = "rgba(0, 0, 0, 0.05)"
-    chat_user_bg = "rgba(139, 92, 246, 0.15)"
-    chat_ai_bg = "rgba(14, 165, 233, 0.1)"
+    card_bg = "rgba(255, 255, 255, 0.9)"
+    card_border = "rgba(0, 0, 0, 0.08)"
+    chat_user_bg = "#E0E7FF" # Soft purple for user
+    chat_ai_bg = "#FFFFFF" # White for AI
     input_bg = "rgba(255, 255, 255, 0.9)"
     glow = "rgba(139, 92, 246, 0.15)"
+    blob1 = "rgba(139, 92, 246, 0.08)"
+    blob2 = "rgba(6, 182, 212, 0.08)"
 
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
 
-/* --- GLOBAL --- */
+/* --- GLOBAL TEXT FIX --- */
 html, body, [class*="css"] {{
     font-family: 'Outfit', sans-serif !important;
 }}
+.stApp, .stMarkdown, p, span, li, h1, h2, h3, h4, h5, h6 {{
+    color: {text_color} !important;
+}}
 .stApp {{
     background-color: {bg_color};
-    color: {text_color};
-    transition: background-color 0.5s ease, color 0.5s ease;
+    transition: background-color 0.5s ease;
     overflow-x: hidden;
 }}
 #MainMenu, footer, header {{ visibility: hidden; }}
 .block-container {{ max-width: 1100px; padding-top: 2rem; padding-bottom: 5rem; }}
 
-/* --- ANIMATED BACKGROUND BLOBS (Like Canva/Grow) --- */
+/* --- SIDEBAR FIX FOR LIGHT MODE --- */
+[data-testid="stSidebar"] {{
+    background-color: {bg_color} !important;
+    border-right: 1px solid {card_border};
+}}
+[data-testid="stSidebar"] * {{
+    color: {text_color} !important;
+}}
+
+/* --- ANIMATED BACKGROUND BLOBS --- */
 .blob {{
     position: fixed;
     border-radius: 50%;
@@ -68,21 +82,14 @@ html, body, [class*="css"] {{
     z-index: -1;
     animation: float 10s infinite ease-in-out alternate;
 }}
-.blob1 {{
-    top: -10%; left: -10%; width: 400px; height: 400px;
-    background: rgba(112, 0, 255, 0.15);
-}}
-.blob2 {{
-    bottom: -10%; right: -10%; width: 500px; height: 500px;
-    background: rgba(0, 240, 255, 0.1);
-    animation-delay: -5s;
-}}
+.blob1 {{ top: -10%; left: -10%; width: 400px; height: 400px; background: {blob1}; }}
+.blob2 {{ bottom: -10%; right: -10%; width: 500px; height: 500px; background: {blob2}; animation-delay: -5s; }}
 @keyframes float {{
     0% {{ transform: translate(0, 0) scale(1); }}
     100% {{ transform: translate(30px, 50px) scale(1.1); }}
 }}
 
-/* --- ANIMATED TOGGLE BUTTON --- */
+/* --- TOGGLE BUTTON --- */
 div[data-testid="stToggle"] {{
     background: {card_bg};
     padding: 10px 20px;
@@ -92,12 +99,8 @@ div[data-testid="stToggle"] {{
     width: fit-content;
     margin-left: auto;
 }}
-div[data-testid="stToggle"] label p {{
-    font-weight: 600 !important;
-    color: {text_color} !important;
-}}
 
-/* --- CHAT MESSAGES (GLASSMORPHISM) --- */
+/* --- CHAT MESSAGES --- */
 [data-testid="stChatMessage"] {{
     background: {card_bg};
     border: 1px solid {card_border};
@@ -105,7 +108,7 @@ div[data-testid="stToggle"] label p {{
     padding: 24px;
     backdrop-filter: blur(20px);
     margin-bottom: 1.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     animation: slideUp 0.4s ease-out;
 }}
@@ -120,21 +123,22 @@ div[data-testid="stToggle"] label p {{
 
 /* User and AI specific styling */
 [data-testid="stChatMessage"]:has(div[aria-label="Chat message from user"]) {{
-    background: {chat_user_bg};
+    background: {chat_user_bg} !important;
 }}
 [data-testid="stChatMessage"]:has(div[aria-label="Chat message from assistant"]) {{
-    background: {chat_ai_bg};
+    background: {chat_ai_bg} !important;
 }}
 
-/* --- CHAT INPUT (CAPSULE) --- */
+/* --- CHAT INPUT --- */
 [data-testid="stChatInput"] {{
     background: {input_bg} !important;
     border: 1px solid {card_border} !important;
     border-radius: 50px !important;
     padding: 10px 20px !important;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
-    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}}
+[data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {{
+    color: {text_color} !important;
 }}
 [data-testid="stChatInput"]:focus-within {{
     border-color: #8B5CF6 !important;
@@ -158,7 +162,7 @@ div[data-testid="stToggle"] label p {{
 }}
 .hero p {{
     font-size: 1.1rem;
-    color: {muted_color};
+    color: {muted_color} !important;
 }}
 @keyframes fadeIn {{
     from {{ opacity: 0; }}
@@ -176,7 +180,6 @@ div[data-testid="stToggle"] label p {{
 # =====================================================
 col1, col2 = st.columns([3, 1])
 with col2:
-    # Animated Toggle Switch
     is_dark = st.toggle("🌙 Dark Mode", value=(st.session_state.theme == "dark"))
     if is_dark and st.session_state.theme == "light":
         st.session_state.theme = "dark"
@@ -203,22 +206,19 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
-# API Key Check (Hidden in sidebar for clean UI)
+# API Key Input in Sidebar
 with st.sidebar:
     st.markdown("### ⚙️ System Config")
-    # Put your actual key here or ask in sidebar
     api_key_input = st.text_input("Groq API Key", type="password", placeholder="gsk_...")
     st.markdown("*Enter your key to activate the AI engine.*")
 
 # Input logic
 if prompt := st.chat_input("Describe your symptoms here..."):
     
-    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
-    # Generate AI response
     with st.chat_message("assistant", avatar="🧬"):
         if not api_key_input:
             st.error("⚠️ Please enter your Groq API Key in the sidebar.")
