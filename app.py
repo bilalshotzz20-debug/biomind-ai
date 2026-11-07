@@ -1,25 +1,31 @@
 import streamlit as st
 import os
 from groq import Groq
-import time
 
 # =====================================================
 # 1. PAGE CONFIG & INITIALIZATION
 # =====================================================
 st.set_page_config(page_title="BioMind AI", page_icon="🧬", layout="wide", initial_sidebar_state="collapsed")
 
-# Initialize Theme State
 if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 
-# Initialize Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Welcome to BioMind. I am your AI medical assistant. Please describe your symptoms to begin the analysis."}
     ]
 
 # =====================================================
-# 2. DYNAMIC CSS (LIGHT & DARK MODES)
+# 2. FETCH API KEY (SECRETS OR SIDEBAR)
+# =====================================================
+# Pehle check karo ke Streamlit Secrets mein key hai ya nahi
+try:
+    SECRET_KEY = st.secrets["GROQ_API_KEY"]
+except:
+    SECRET_KEY = None
+
+# =====================================================
+# 3. DYNAMIC CSS (LIGHT & DARK MODES)
 # =====================================================
 if st.session_state.theme == "dark":
     bg_color = "#050508"
@@ -35,12 +41,12 @@ if st.session_state.theme == "dark":
     blob2 = "rgba(0, 240, 255, 0.1)"
 else:
     bg_color = "#F8FAFC"
-    text_color = "#0F172A" # Dark text for light mode
+    text_color = "#0F172A" 
     muted_color = "#64748B"
     card_bg = "rgba(255, 255, 255, 0.9)"
     card_border = "rgba(0, 0, 0, 0.08)"
-    chat_user_bg = "#E0E7FF" # Soft purple for user
-    chat_ai_bg = "#FFFFFF" # White for AI
+    chat_user_bg = "#E0E7FF" 
+    chat_ai_bg = "#FFFFFF" 
     input_bg = "rgba(255, 255, 255, 0.9)"
     glow = "rgba(139, 92, 246, 0.15)"
     blob1 = "rgba(139, 92, 246, 0.08)"
@@ -49,134 +55,48 @@ else:
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-
-/* --- GLOBAL TEXT FIX --- */
-html, body, [class*="css"] {{
-    font-family: 'Outfit', sans-serif !important;
-}}
-.stApp, .stMarkdown, p, span, li, h1, h2, h3, h4, h5, h6 {{
-    color: {text_color} !important;
-}}
-.stApp {{
-    background-color: {bg_color};
-    transition: background-color 0.5s ease;
-    overflow-x: hidden;
-}}
+html, body, [class*="css"] {{ font-family: 'Outfit', sans-serif !important; }}
+.stApp, .stMarkdown, p, span, li, h1, h2, h3, h4, h5, h6 {{ color: {text_color} !important; }}
+.stApp {{ background-color: {bg_color}; transition: background-color 0.5s ease; overflow-x: hidden; }}
 #MainMenu, footer, header {{ visibility: hidden; }}
 .block-container {{ max-width: 1100px; padding-top: 2rem; padding-bottom: 5rem; }}
+[data-testid="stSidebar"] {{ background-color: {bg_color} !important; border-right: 1px solid {card_border}; }}
+[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
 
-/* --- SIDEBAR FIX FOR LIGHT MODE --- */
-[data-testid="stSidebar"] {{
-    background-color: {bg_color} !important;
-    border-right: 1px solid {card_border};
-}}
-[data-testid="stSidebar"] * {{
-    color: {text_color} !important;
-}}
-
-/* --- ANIMATED BACKGROUND BLOBS --- */
-.blob {{
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    z-index: -1;
-    animation: float 10s infinite ease-in-out alternate;
-}}
+/* Background Blobs */
+.blob {{ position: fixed; border-radius: 50%; filter: blur(80px); z-index: -1; animation: float 10s infinite ease-in-out alternate; }}
 .blob1 {{ top: -10%; left: -10%; width: 400px; height: 400px; background: {blob1}; }}
 .blob2 {{ bottom: -10%; right: -10%; width: 500px; height: 500px; background: {blob2}; animation-delay: -5s; }}
-@keyframes float {{
-    0% {{ transform: translate(0, 0) scale(1); }}
-    100% {{ transform: translate(30px, 50px) scale(1.1); }}
-}}
+@keyframes float {{ 0% {{ transform: translate(0, 0) scale(1); }} 100% {{ transform: translate(30px, 50px) scale(1.1); }} }}
 
-/* --- TOGGLE BUTTON --- */
-div[data-testid="stToggle"] {{
-    background: {card_bg};
-    padding: 10px 20px;
-    border-radius: 50px;
-    border: 1px solid {card_border};
-    backdrop-filter: blur(10px);
-    width: fit-content;
-    margin-left: auto;
-}}
+/* Toggle Button */
+div[data-testid="stToggle"] {{ background: {card_bg}; padding: 10px 20px; border-radius: 50px; border: 1px solid {card_border}; backdrop-filter: blur(10px); width: fit-content; margin-left: auto; }}
 
-/* --- CHAT MESSAGES --- */
-[data-testid="stChatMessage"] {{
-    background: {card_bg};
-    border: 1px solid {card_border};
-    border-radius: 20px;
-    padding: 24px;
-    backdrop-filter: blur(20px);
-    margin-bottom: 1.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    animation: slideUp 0.4s ease-out;
-}}
-[data-testid="stChatMessage"]:hover {{
-    transform: translateY(-3px);
-    box-shadow: 0 12px 40px {glow};
-}}
-@keyframes slideUp {{
-    from {{ opacity: 0; transform: translateY(20px); }}
-    to {{ opacity: 1; transform: translateY(0); }}
-}}
+/* Chat Messages */
+[data-testid="stChatMessage"] {{ background: {card_bg}; border: 1px solid {card_border}; border-radius: 20px; padding: 24px; backdrop-filter: blur(20px); margin-bottom: 1.5rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; animation: slideUp 0.4s ease-out; }}
+[data-testid="stChatMessage"]:hover {{ transform: translateY(-3px); box-shadow: 0 12px 40px {glow}; }}
+@keyframes slideUp {{ from {{ opacity: 0; transform: translateY(20px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+[data-testid="stChatMessage"]:has(div[aria-label="Chat message from user"]) {{ background: {chat_user_bg} !important; }}
+[data-testid="stChatMessage"]:has(div[aria-label="Chat message from assistant"]) {{ background: {chat_ai_bg} !important; }}
 
-/* User and AI specific styling */
-[data-testid="stChatMessage"]:has(div[aria-label="Chat message from user"]) {{
-    background: {chat_user_bg} !important;
-}}
-[data-testid="stChatMessage"]:has(div[aria-label="Chat message from assistant"]) {{
-    background: {chat_ai_bg} !important;
-}}
+/* Chat Input */
+[data-testid="stChatInput"] {{ background: {input_bg} !important; border: 1px solid {card_border} !important; border-radius: 50px !important; padding: 10px 20px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important; }}
+[data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {{ color: {text_color} !important; }}
+[data-testid="stChatInput"]:focus-within {{ border-color: #8B5CF6 !important; box-shadow: 0 0 20px {glow} !important; }}
 
-/* --- CHAT INPUT --- */
-[data-testid="stChatInput"] {{
-    background: {input_bg} !important;
-    border: 1px solid {card_border} !important;
-    border-radius: 50px !important;
-    padding: 10px 20px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
-}}
-[data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {{
-    color: {text_color} !important;
-}}
-[data-testid="stChatInput"]:focus-within {{
-    border-color: #8B5CF6 !important;
-    box-shadow: 0 0 20px {glow} !important;
-}}
-
-/* --- HERO TYPOGRAPHY --- */
-.hero {{
-    text-align: center;
-    margin-bottom: 40px;
-    animation: fadeIn 1s ease-out;
-}}
-.hero h1 {{
-    font-size: 3.5rem;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 10px;
-}}
-.hero p {{
-    font-size: 1.1rem;
-    color: {muted_color} !important;
-}}
-@keyframes fadeIn {{
-    from {{ opacity: 0; }}
-    to {{ opacity: 1; }}
-}}
+/* Hero */
+.hero {{ text-align: center; margin-bottom: 40px; animation: fadeIn 1s ease-out; }}
+.hero h1 {{ font-size: 3.5rem; font-weight: 800; letter-spacing: -1.5px; background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }}
+.hero p {{ font-size: 1.1rem; color: {muted_color} !important; }}
+@keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
 </style>
 
-<!-- Background Blobs -->
 <div class="blob blob1"></div>
 <div class="blob blob2"></div>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# 3. TOP BAR (Theme Toggle)
+# 4. TOP BAR (Theme Toggle)
 # =====================================================
 col1, col2 = st.columns([3, 1])
 with col2:
@@ -189,7 +109,7 @@ with col2:
         st.rerun()
 
 # =====================================================
-# 4. HERO SECTION
+# 5. HERO SECTION
 # =====================================================
 st.markdown("""
 <div class="hero">
@@ -199,21 +119,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =====================================================
-# 5. CHAT INTERFACE
+# 6. CHAT INTERFACE
 # =====================================================
 for message in st.session_state.messages:
     avatar = "🧬" if message["role"] == "assistant" else "👤"
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
-# API Key Input in Sidebar
+# =====================================================
+# 7. SIDEBAR & KEY LOGIC
+# =====================================================
+api_key_input = ""
 with st.sidebar:
     st.markdown("### ⚙️ System Config")
-    api_key_input = st.text_input("Groq API Key", type="password", placeholder="gsk_...")
-    st.markdown("*Enter your key to activate the AI engine.*")
+    if SECRET_KEY:
+        st.success("✅ API Key loaded securely from Streamlit Secrets.")
+        api_key_input = SECRET_KEY
+    else:
+        st.warning("⚠️ API Key not found in Secrets. Please enter manually.")
+        api_key_input = st.text_input("Groq API Key", type="password", placeholder="gsk_...")
 
 # Input logic
-if prompt := st.chat_input("Describe your symptoms here..."):
+if prompt := st.chat_input("Describe your symptoms here (e.g., fever, sore throat...)"):
     
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
@@ -221,7 +148,7 @@ if prompt := st.chat_input("Describe your symptoms here..."):
 
     with st.chat_message("assistant", avatar="🧬"):
         if not api_key_input:
-            st.error("⚠️ Please enter your Groq API Key in the sidebar.")
+            st.error("⚠️ API Key missing. Please check Streamlit Secrets or enter it in the sidebar.")
             st.stop()
             
         with st.spinner("Analyzing medical database..."):
